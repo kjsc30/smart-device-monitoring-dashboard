@@ -4,7 +4,14 @@ A full-stack IoT device monitoring MVP built with **FastAPI**, **SQLite**, and *
 
 This project simulates a basic smart device monitoring workflow: sensor data can be uploaded through a web dashboard or a Python device simulator, processed by a FastAPI backend, stored in SQLite, and displayed on a frontend dashboard.
 
+## Screenshot
+
+![Dashboard Screenshot](screenshots/dashboard.png)
+
 ## Features
+
+- Upload sensor data from the dashboard
+- Simulate IoT device data upload with a Python script
 
 - Upload sensor data from the dashboard
 - Simulate IoT device data upload with a Python script
