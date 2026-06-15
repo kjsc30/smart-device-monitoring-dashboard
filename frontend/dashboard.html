@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Smart Device Dashboard</title>
+    <style>
+        body {
+                font-family: Arial, sans-serif;
+                margin: 30px;
+                background-color: #f5f5f5;
+            }
+
+            h1 {
+                margin-bottom: 20px;
+            }
+
+            button {
+                padding: 8px 14px;
+                margin-right: 8px;
+                cursor: pointer;
+            }
+
+            table {
+                border-collapse: collapse;
+                width: 100%;
+                background-color: white;
+                margin-top: 15px;
+            }
+
+            th, td {
+                border: 1px solid #ccc;
+                padding: 8px;
+                text-align: left;
+            }
+
+            th {
+                background-color: #eeeeee;
+            }
+
+            .normal {
+                color: green;
+                font-weight: bold;
+            }
+
+            .alert {
+                color: orange;
+                font-weight: bold;
+            }
+
+            .danger {
+                color: red;
+                font-weight: bold;
+            }
+    </style>
+</head>
+<body>
+    <h1>Smart Device Dashboard</h1>
+    <h2>Upload Sensor Data</h2>
+
+    <div>
+        <input id="device-id" placeholder="Device ID">
+        <input id="temperature" placeholder="Temperature" type="number">
+        <input id="humidity" placeholder="Humidity" type="number">
+        <input id="voltage" placeholder="Voltage" type="number">
+        <input id="location" placeholder="Location">
+        <button onclick="uploadData()">Upload</button>
+    </div>
+
+    <button onclick="loadData()">Load Data</button>
+    <button onclick="loadAlerts()">Load Alerts</button>
+    <button onclick="loadDevices()">Load Devices</button>
+    <button onclick="loadReport()">Generate Report</button>
+
+    <h2 id="section-title">Data Records</h2>
+
+    <table border="1">
+        <thead id="table-head"></thead>
+        <tbody id="data-table"></tbody>
+    </table>
+    <h2>Inspection Report</h2>
+    <pre id="report-box"></pre>
+    <script>
+        async function loadData() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/data");
+                const result = await response.json();
+
+                document.getElementById("section-title").innerText = "Data Records";
+
+                renderDataTable(result.data);
+            } catch (error) {
+                console.error("加载数据失败:", error);
+                alert("加载数据失败，请打开控制台查看错误");
+            }
+        }
+
+        async function loadAlerts() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/alerts");
+                const result = await response.json();
+
+                document.getElementById("section-title").innerText = "Alerts";
+
+                renderDataTable(result.data);
+            } catch (error) {
+                console.error("加载报警失败:", error);
+                alert("加载报警失败，请打开控制台查看错误");
+            }
+        }
+
+        async function loadDevices() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/devices");
+                const result = await response.json();
+
+                document.getElementById("section-title").innerText = "Devices";
+
+                renderDeviceTable(result.devices);
+            } catch (error) {
+                console.error("加载设备失败:", error);
+                alert("加载设备失败，请打开控制台查看错误");
+            }
+        }
+        async function uploadData() {
+            try {
+                const deviceId = document.getElementById("device-id").value;
+                const temperature = Number(document.getElementById("temperature").value);
+                const humidityInput = document.getElementById("humidity").value;
+                const voltageInput = document.getElementById("voltage").value;
+                const location = document.getElementById("location").value;
+
+                const payload = {
+                    device_id: deviceId,
+                    temperature: temperature,
+                    humidity: humidityInput === "" ? null : Number(humidityInput),
+                    voltage: voltageInput === "" ? null : Number(voltageInput),
+                    location: location === "" ? null : location
+                };
+
+                const response = await fetch("http://127.0.0.1:8000/upload", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+
+                console.log("上传结果:", result);
+                alert(`上传成功：${result.status} - ${result.message}`);
+
+                loadData();
+            } catch (error) {
+                console.error("上传失败:", error);
+                alert("上传失败，请打开控制台查看错误");
+            }
+        }
+        async function loadReport() {
+            try {
+                const response = await fetch("http://127.0.0.1:8000/report");
+                const result = await response.json();
+
+                const reportBox = document.getElementById("report-box");
+                reportBox.innerText = result.report;
+            } catch (error) {
+                console.error("生成报告失败:", error);
+                alert("生成报告失败，请打开控制台查看错误");
+            }
+        }
+        async function deleteRecord(recordId) {
+            const confirmed = confirm(`确定要删除 id=${recordId} 的数据吗？`);
+
+            if (!confirmed) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://127.0.0.1:8000/data/${recordId}`, {
+                    method: "DELETE"
+                });
+
+                const result = await response.json();
+
+                alert(result.message);
+
+                loadData();
+            } catch (error) {
+                console.error("删除失败:", error);
+                alert("删除失败，请打开控制台查看错误");
+            }
+        }
+        function renderDataTable(records) {
+            const tableHead = document.getElementById("table-head");
+            const tableBody = document.getElementById("data-table");
+
+            tableHead.innerHTML = `
+                <tr>
+                    <th>ID</th>
+                    <th>Device ID</th>
+                    <th>Temperature</th>
+                    <th>Humidity</th>
+                    <th>Voltage</th>
+                    <th>Status</th>
+                    <th>Message</th>
+                    <th>Time</th>
+                    <th>Action</th>
+                </tr>
+            `;
+
+            tableBody.innerHTML = "";
+
+            for (const record of records) {
+                const row = `
+                    <tr>
+                        <td>${record.id}</td>
+                        <td>${record.device_id}</td>
+                        <td>${record.temperature}</td>
+                        <td>${record.humidity}</td>
+                        <td>${record.voltage}</td>
+                        <td class="${record.status}">${record.status}</td>
+                        <td>${record.message}</td>
+                        <td>${record.created_at}</td>
+                        <td>
+                            <button onclick="deleteRecord(${record.id})">Delete</button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            }
+            
+        }
+
+        function renderDeviceTable(devices) {
+            const tableHead = document.getElementById("table-head");
+            const tableBody = document.getElementById("data-table");
+
+            tableHead.innerHTML = `
+                <tr>
+                    <th>Device ID</th>
+                    <th>Total Records</th>
+                    <th>Last Seen</th>
+                </tr>
+            `;
+
+            tableBody.innerHTML = "";
+
+            for (const device of devices) {
+                const row = `
+                    <tr>
+                        <td>${device.device_id}</td>
+                        <td>${device.total}</td>
+                        <td>${device.last_seen}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            }
+        }
+    </script>
+</body>
+</html>
