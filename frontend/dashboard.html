@@ -51,6 +51,30 @@
                 color: red;
                 font-weight: bold;
             }
+            .summary-container {
+                display: flex;
+                gap: 15px;
+                margin: 20px 0;
+            }
+
+            .summary-card {
+                background-color: white;
+                border: 1px solid #ccc;
+                padding: 15px;
+                width: 180px;
+                text-align: center;
+            }
+
+            .summary-card h3 {
+                margin: 0 0 10px 0;
+                font-size: 16px;
+            }
+
+            .summary-card p {
+                font-size: 24px;
+                font-weight: bold;
+                margin: 0;
+            }
     </style>
 </head>
 <body>
@@ -70,7 +94,29 @@
     <button onclick="loadAlerts()">Load Alerts</button>
     <button onclick="loadDevices()">Load Devices</button>
     <button onclick="loadReport()">Generate Report</button>
+    <h2>Summary</h2>
 
+    <div class="summary-container">
+        <div class="summary-card">
+            <h3>Total Records</h3>
+            <p id="total-records">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Alert Records</h3>
+            <p id="alert-records">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Danger Records</h3>
+            <p id="danger-records">0</p>
+        </div>
+
+        <div class="summary-card">
+            <h3>Devices</h3>
+            <p id="device-count">0</p>
+        </div>
+    </div>
     <h2 id="section-title">Data Records</h2>
 
     <table border="1">
@@ -147,10 +193,17 @@
 
                 const result = await response.json();
 
+                if (!response.ok) {
+                    console.error("后端返回错误:", result);
+                    alert("上传失败：" + JSON.stringify(result));
+                    return;
+                }
+
                 console.log("上传结果:", result);
                 alert(`上传成功：${result.status} - ${result.message}`);
 
                 loadData();
+                loadSummary();
             } catch (error) {
                 console.error("上传失败:", error);
                 alert("上传失败，请打开控制台查看错误");
@@ -188,6 +241,38 @@
             } catch (error) {
                 console.error("删除失败:", error);
                 alert("删除失败，请打开控制台查看错误");
+            }
+        }
+        async function loadSummary() {
+            try {
+                const dataResponse = await fetch("http://127.0.0.1:8000/data?limit=500");
+                const dataResult = await dataResponse.json();
+
+                const alertsResponse = await fetch("http://127.0.0.1:8000/alerts?limit=500");
+                const alertsResult = await alertsResponse.json();
+
+                const devicesResponse = await fetch("http://127.0.0.1:8000/devices");
+                const devicesResult = await devicesResponse.json();
+
+                const totalRecords = dataResult.count;
+                const alertRecords = alertsResult.count;
+                const deviceCount = devicesResult.count;
+
+                let dangerRecords = 0;
+
+                for (const record of dataResult.data) {
+                    if (record.status === "danger") {
+                        dangerRecords++;
+                    }
+                }
+
+                document.getElementById("total-records").innerText = totalRecords;
+                document.getElementById("alert-records").innerText = alertRecords;
+                document.getElementById("danger-records").innerText = dangerRecords;
+                document.getElementById("device-count").innerText = deviceCount;
+            } catch (error) {
+                console.error("加载统计数据失败:", error);
+                alert("加载统计数据失败，请打开控制台查看错误");
             }
         }
         function renderDataTable(records) {
@@ -256,6 +341,7 @@
                 tableBody.innerHTML += row;
             }
         }
+        loadSummary();
     </script>
 </body>
 </html>
