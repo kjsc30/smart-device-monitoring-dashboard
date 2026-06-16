@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Smart Device Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
                 font-family: Arial, sans-serif;
@@ -75,6 +76,13 @@
                 font-weight: bold;
                 margin: 0;
             }
+            .chart-container {
+                background-color: white;
+                border: 1px solid #ccc;
+                padding: 20px;
+                margin: 20px 0;
+                width: 500px;
+            }
     </style>
 </head>
 <body>
@@ -117,6 +125,12 @@
             <p id="device-count">0</p>
         </div>
     </div>
+
+    <h2>Status Distribution</h2>
+
+    <div class="chart-container">
+        <canvas id="status-chart"></canvas>
+    </div>
     <h2 id="section-title">Data Records</h2>
 
     <table border="1">
@@ -126,6 +140,7 @@
     <h2>Inspection Report</h2>
     <pre id="report-box"></pre>
     <script>
+        let statusChart = null;
         async function loadData() {
             try {
                 const response = await fetch("http://127.0.0.1:8000/data");
@@ -247,6 +262,7 @@
             try {
                 const dataResponse = await fetch("http://127.0.0.1:8000/data?limit=500");
                 const dataResult = await dataResponse.json();
+                renderStatusChart(dataResult.data);
 
                 const alertsResponse = await fetch("http://127.0.0.1:8000/alerts?limit=500");
                 const alertsResult = await alertsResponse.json();
@@ -340,6 +356,49 @@
                 `;
                 tableBody.innerHTML += row;
             }
+        }
+        function renderStatusChart(records) {
+            let normalCount = 0;
+            let alertCount = 0;
+            let dangerCount = 0;
+
+            for (const record of records) {
+                if (record.status === "normal") {
+                    normalCount++;
+                } else if (record.status === "alert") {
+                    alertCount++;
+                } else if (record.status === "danger") {
+                    dangerCount++;
+                }
+            }
+
+            const ctx = document.getElementById("status-chart");
+
+            if (statusChart !== null) {
+                statusChart.destroy();
+            }
+
+            statusChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: ["normal", "alert", "danger"],
+                    datasets: [
+                        {
+                            label: "Record Count",
+                            data: [normalCount, alertCount, dangerCount]
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Device Status Distribution"
+                        }
+                    }
+                }
+            });
         }
         loadSummary();
     </script>
