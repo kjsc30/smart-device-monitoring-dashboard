@@ -131,6 +131,11 @@
     <div class="chart-container">
         <canvas id="status-chart"></canvas>
     </div>
+    <h2>Device Records</h2>
+
+    <div class="chart-container">
+        <canvas id="device-chart"></canvas>
+    </div>
     <h2 id="section-title">Data Records</h2>
 
     <table border="1">
@@ -141,6 +146,7 @@
     <pre id="report-box"></pre>
     <script>
         let statusChart = null;
+        let deviceChart = null;
         async function loadData() {
             try {
                 const response = await fetch("http://127.0.0.1:8000/data");
@@ -286,6 +292,9 @@
                 document.getElementById("alert-records").innerText = alertRecords;
                 document.getElementById("danger-records").innerText = dangerRecords;
                 document.getElementById("device-count").innerText = deviceCount;
+
+                renderStatusChart(dataResult.data);
+                renderDeviceChart(devicesResult.devices);
             } catch (error) {
                 console.error("加载统计数据失败:", error);
                 alert("加载统计数据失败，请打开控制台查看错误");
@@ -395,6 +404,43 @@
                         title: {
                             display: true,
                             text: "Device Status Distribution"
+                        }
+                    }
+                }
+            });
+        }
+        function renderDeviceChart(devices) {
+            const labels = [];
+            const totals = [];
+
+            for (const device of devices) {
+                labels.push(device.device_id);
+                totals.push(device.total);
+            }
+
+            const ctx = document.getElementById("device-chart");
+
+            if (deviceChart !== null) {
+                deviceChart.destroy();
+            }
+
+            deviceChart = new Chart(ctx, {
+                type: "bar",
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: "Upload Count",
+                            data: totals
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: "Device Upload Count"
                         }
                     }
                 }
